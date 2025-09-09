@@ -93,18 +93,6 @@ streamlit run app.py
 
 ```
 
-## Reference Configuration (config.yaml)
-
-''' 
-team: null            # e.g., NYY or null for league-wide
-years: [2022, 2023, 2024]
-start_month: 3
-end_month: 10
-min_pa: 50            # use 10 while testing for more rows
-min_bf: 50
-cache_dir: ".pybaseball-cache"
-'''
-
 ## Notes & Tips
 
 - **API etiquette**: `pybaseball` scrapes public endpoints. Use the built‑in caching and chunk by month to avoid timeouts.
