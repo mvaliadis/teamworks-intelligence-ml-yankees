@@ -23,7 +23,7 @@ min_pa = st.sidebar.slider("Minimum PA (hitters)", min_value=0, max_value=650, v
 min_bf = st.sidebar.slider("Minimum BF (pitchers)", min_value=0, max_value=800, value=50, step=10)
 
 # Tabs
-tabs = st.tabs(["Hitters", "Pitchers"])
+tabs = st.tabs(["Hitters", "Pitchers", "Model"])
 
 with tabs[0]:
     if hitters_path.exists() or sample_hitters.exists():
@@ -78,3 +78,28 @@ with tabs[1]:
                            mime="text/csv")
     else:
         st.info("Run the pipeline to create data/processed/pitchers_features.csv or use sample data (included)")
+
+# at the end of app.py
+with tabs[2]:
+    st.subheader("Model Evaluation (Hitters)")
+    rep_path = Path("data/processed/model_report.json")
+    fi_path = Path("data/processed/feature_importance.csv")
+    if rep_path.exists() and fi_path.exists():
+        import json
+        with open(rep_path) as f:
+            rep = json.load(f)
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Baseline R²", f"{rep['baseline']['r2']:.3f}")
+        c2.metric("Model R²", f"{rep['model']['r2']:.3f}")
+        c3.metric("Model MAE", f"{rep['model']['mae']:.3f}")
+        st.caption(f"CV: {rep.get('cv','')}, n={rep['n_samples']}, mode={rep['mode']}")
+        fi = pd.read_csv(fi_path)
+        st.markdown("#### Permutation Importance")
+        fig, ax = plt.subplots(figsize=(6,3.5))
+        ax.bar(fi["feature"], fi["importance_mean"])
+        ax.set_ylabel("Mean importance")
+        ax.set_xticklabels(fi["feature"], rotation=30, ha="right")
+        ax.grid(True, axis="y", alpha=0.3)
+        st.pyplot(fig)
+    else:
+        st.info("Run: `python scripts/evaluate_model.py` to generate a model report.")

@@ -1,0 +1,27 @@
+{
+  "mode": "within_season",
+  "cv": "GroupKFold(n_splits=5)",
+  "baseline": {
+    "r2": 0.4789949891143498,
+    "mae": 0.09293248533543523
+  },
+  "model": {
+    "r2": 0.5582658062710482,
+    "mae": 0.08641566201221186
+  },
+  "best_params": {
+    "learning_rate": 0.05,
+    "max_depth": 2,
+    "n_estimators": 200,
+    "subsample": 1.0
+  },
+  "n_samples": 1322,
+  "x_features": [
+    "xwoba",
+    "avg_ev",
+    "k_rate",
+    "bb_rate",
+    "barrel_rate",
+    "pa"
+  ]
+}
