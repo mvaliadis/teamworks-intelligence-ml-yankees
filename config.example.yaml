@@ -1,0 +1,8 @@
+# Project configuration
+team: NYY          # 3-letter team code, e.g., NYY, LAD, ATL. Use null for all teams.
+years: [2023, 2024] # Seasons to pull (inclusive). Large ranges may take time.
+start_month: 3     # First month to pull (3=March)
+end_month: 10      # Last month to pull (10=October)
+min_pa: 50         # Minimum plate appearances to include hitters
+min_bf: 50         # Minimum batters faced to include pitchers
+cache_dir: ".pybaseball-cache" # local cache for pybaseball
