@@ -1,4 +1,4 @@
-# Yankees (MLB) – End‑to‑End Sports Analytics (Statcast)
+# Yankees (MLB) – End-to-End Sports Analytics (Statcast)
 
 <p align="left">
   <!-- Replace USER/REPO after pushing -->
@@ -10,34 +10,60 @@
   </a>
 </p>
 
+A compact, reproducible baseball analytics project.  
+Pull MLB Statcast data (via [`pybaseball`](https://github.com/jldbc/pybaseball)), build hitter/pitcher features, evaluate a simple model, and explore leaderboards in a Streamlit app.
 
-A compact, reproducible baseball analytics project you can run locally and publish as a portfolio repo.
-It pulls MLB Statcast data (via [`pybaseball`](https://github.com/jldbc/pybaseball)), builds hitter/pitcher features,
-and produces team‑ready leaderboards plus a simple Streamlit app.
+> **Why this repo?** Practical, production-minded DS for sports: robust ingest, vectorized features on noisy pitch-level data, a toy model with CV + feature importance, and a small app—cleanly organized and easy to extend.
 
-> **Why this repo?** Shows practical, production‑minded DS for sports: data retrieval, feature engineering on noisy tracking‑adjacent pitch‑level data, evaluation, and a small app—cleanly organized and easy to extend to other teams/sports.
+---
+
+## What’s inside
+
+- **Ingest → Features → Model → App** pipeline driven by `config.yaml`.
+- **Vectorized feature builders** (fast & robust):
+  - Hitters: PA (AB/wOBA/event fallbacks), wOBA/xwOBA, EV (mean/max), K%, BB%, Barrel%.
+  - Pitchers: BF, CSW%, K%, BB%, GB%, EV allowed.
+- **Toy ML evaluation** (hitters): Gradient Boosting, grouped CV, permutation importance.
+- **Interactive app**:
+  - Sortable leaderboards
+  - X/Y **axis selectors** (e.g., xwOBA vs wOBA), **season filter**, and **player name labels** toggle
+  - **Model** tab: baseline vs model metrics + feature importance
+- **Artifacts**: `data/processed/model_report.json`, `feature_importance.csv`
+- **Deployment-friendly**: Dockerfile, CI stub, `.gitignore` for raw data.
+
+**Example run** (league-wide 2022–2024, lenient thresholds)
+- Hitters: **1,322** rows
+- Pitchers: **2,435** rows
+- Model (within-season): **R² 0.558** vs baseline **0.479**, **MAE 0.086** vs 0.093  
+*(Your scores will vary by config.)*
+
+---
 
 ## Quickstart
 
 ```bash
 # 1) Create env
-python -m venv .venv && source .venv/bin/activate  # Windows: .venv\Scripts\activate
+python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install --upgrade pip
 pip install -r requirements.txt
 
-# 2) Configure (defaults to Yankees, 2023–2024)
-cp config.example.yaml config.yaml  # edit as needed
+# 2) Configure
+cp config.example.yaml config.yaml   # edit as needed (team/years/thresholds)
 
-# 3) Pull Statcast (chunks by month) -> data/raw/
+# 3) Pull Statcast -> data/raw/
 python scripts/pull_statcast.py --config config.yaml
 
 # 4) Build features -> data/processed/
 python scripts/build_features.py --config config.yaml
 
-# 5) (Optional) Train a simple model to predict season wOBA from last season features
-python scripts/train_model.py --config config.yaml
+# 5) (Optional) Train a simple model (saves model + report)
+# Windows:
+set PYTHONPATH=.
+python scripts\train_model.py --config config.yaml
+# macOS/Linux:
+PYTHONPATH=. python scripts/train_model.py --config config.yaml
 
-# 6) Explore a small leaderboard app
+# 6) Explore the app
 streamlit run app.py
 ```
 
@@ -45,33 +71,50 @@ streamlit run app.py
 
 ```
 .
-├─ app.py                      # Streamlit leaderboard for hitters/pitchers
-├─ config.example.yaml         # Editable settings (team, years, filters)
+├─ app.py                      # Streamlit app (Hitters, Pitchers, Model tabs)
+├─ config.example.yaml         # Template config (copy to config.yaml)
 ├─ requirements.txt
 ├─ src/
-│  ├─ data.py                  # Data retrieval utilities (Statcast)
-│  ├─ features.py              # Robust feature engineering for hitters/pitchers
-│  ├─ models.py                # Simple modeling helpers (GBR for wOBA)
-│  └─ utils.py                 # IO, chunking, logging
+│  ├─ data.py                  # Statcast retrieval (month chunks, caching)
+│  ├─ features.py              # Vectorized feature engineering (robust)
+│  ├─ models.py                # Season-shift helper + utilities
+│  └─ utils.py                 # IO, config, ensure_dir
 ├─ scripts/
-│  ├─ pull_statcast.py         # CLI to fetch statcast by month and save raw CSVs
-│  ├─ build_features.py        # CLI to build season-level features
-│  └─ train_model.py           # CLI to train a basic predictive model
+│  ├─ pull_statcast.py         # Fetch statcast and write data/raw/*.csv
+│  ├─ build_features.py        # Build hitters/pitchers features to data/processed/
+│  ├─ evaluate_model.py        # Evaluate toy model, write report + importances
+│  └─ train_model.py           # Train + save a model artifact (model.pkl, cols.json)
 ├─ data/
-│  ├─ raw/                     # Raw statcast CSVs
-│  └─ processed/               # Features per season: hitters.csv, pitchers.csv
+│  ├─ raw/                     # (gitignored) month/season CSVs
+│  └─ processed/               # Features + model artifacts
+├─ sample_data/                # Small fallback CSVs for instant demo
 └─ tests/
-   └─ test_features.py         # Basic sanity checks on feature outputs
+   └─ test_features.py
+
 ```
+
+## Reference Configuration (config.yaml)
+
+''' 
+team: null            # e.g., NYY or null for league-wide
+years: [2022, 2023, 2024]
+start_month: 3
+end_month: 10
+min_pa: 50            # use 10 while testing for more rows
+min_bf: 50
+cache_dir: ".pybaseball-cache"
+'''
 
 ## Notes & Tips
 
 - **API etiquette**: `pybaseball` scrapes public endpoints. Use the built‑in caching and chunk by month to avoid timeouts.
 - **Reproducibility**: This repo prefers deterministic aggregations, explicit filters (e.g., minimum PA/BF), and simple, explainable metrics.
+- **Speed**: Feature building is vectorized; we read only needed columns with usecols.
+- **R² warnings**: If dataset is tiny, CV may issue warnings; use league-wide multi-year and low thresholds while testing.
+- **Windows import path**: set `PYTHONPATH=.` before running `evaluate_model.py/train_model.py`.
 - **Extensibility**: You can swap `team: NYY` for any team (e.g., `LAD`) or set `team: null` to pull league‑wide data.
 - **Attribution**: MIT License. Cite `pybaseball` in your README if posting results.
 - **Disclaimer**: For demo/portfolio purposes; not affiliated with MLB or the New York Yankees.
-
 
 ## Showcase Notebooks
 - `notebooks/yankees_2024_rolling_xwoba_and_comps.ipynb` — Rolling xwOBA for top NYY hitters in 2024 + comparable-player search (cosine similarity).
